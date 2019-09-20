@@ -1,0 +1,241 @@
+clear;
+close all;
+clc;
+addpath('mytoolbox');      
+
+% "doc" to see a function's way of working
+% "edit" to see how is written a function
+
+
+%% Port reset:
+% instrfind reads serial port objects from memory to MATLAB workspace
+if not(isempty(instrfind)) 
+    fclose(instrfind);
+    delete(instrfind);
+end
+
+
+%% Serial open
+arduino=serial('COM3','BaudRate',115200);
+fopen(arduino);
+fs = 200;  % 200Hz sample rate (refer to arduino code)
+T = 1/fs;  % sample period
+fc = 1.5;  % cut off frequency for LPF
+
+y = char.empty;
+while strcmp(y,char([71,79,13,10])) ~= 1
+    y = char(fscanf(arduino));
+    disp(y);
+end
+
+
+% %% Magnetometer XY calibration
+% % Initialize figure
+% figure()
+% l = animatedline('Color','r','Marker','.');
+% 
+% % Initialize data
+% mag = zeros([0 0]);
+% ms = 0;
+% 
+% % Data acquisition
+% disp('==Rotate the device around the Z-axis==');
+% t0 = clock;
+% while ms < 10 
+%     y = fgets(arduino);
+%     temp = str2num(y);
+%     mag = cat(1,mag,temp(3,1:2));
+%     addpoints(l,mag(end,1),mag(end,2));
+%     drawnow limitrate
+%     ms = etime(clock,t0);
+% end
+% disp('==STOP==');
+% 
+% % % Fourier analysis
+% % Y = fft(mag);
+% % L = length(mag);     % Length of signal
+% % t = (0:L-1)*T;       % Time vector
+% % P2 = abs(Y/L);
+% % if mod(L,2) == 1
+% %     P1 = P2(1:floor(L/2)+1);
+% % else
+% %     P1 = P2(1:L/2);
+% % end
+% % P1(2:end-1) = 2*P1(2:end-1);
+% % f = fs*(0:(L/2))/L;
+% % figure()
+% % plot(f,P1) ;
+% % title('Single-Sided Amplitude Spectrum of B(t)');
+% % xlabel('f (Hz)');
+% % ylabel('|P1(f)|');
+% 
+% % Filter
+% [b,a] = butter_synth(1,fc,fs);  % from mytoolbox
+% magB = filter(b,a,mag);         % built-in function
+% 
+% magF = magB;
+% for i=1:50
+%     magF(1,:)=[];
+% end
+% 
+% x1_avg = (max(magF(:,1))+min(magF(:,1)))/2;  % =-7.09363µT
+% y1_avg = (max(magF(:,2))+min(magF(:,2)))/2;  % =13.9828µT
+% 
+% figure()
+% plot(mag(:,1),mag(:,2),'Color','r');
+% hold on
+% plot(magF(:,1),magF(:,2),'Color','b');
+% hold on
+% plot(magF(:,1)-x1_avg,magF(:,2)-y1_avg,'Color','g');
+% title('XY Calibration')
+% xlabel('m_x (µT)');
+% ylabel('m_y (µT)');
+% legend('raw data','after LP filtration','calibrated data');
+% axis equal
+% grid on
+% 
+% 
+% %% Magnetometer YZ calibration
+% % Initialize figure
+% figure()
+% l = animatedline('Color','r','Marker','.');
+% 
+% % Initialize data
+% mag = zeros([0 0]);
+% 
+% % Read
+% ms = 0;
+% t0 = clock;
+% while ms < 4
+%     y = fgets(arduino);
+%     disp(y);
+%     ms = etime(clock,t0);
+% end
+% 
+% disp('==Rotate the device around the X-axis==');
+% y = char.empty;
+% ms = 0;
+% t0 = clock;
+% while ms < 10 
+%     y = fgets(arduino);
+%     temp = str2num(y);
+%     mag = cat(1,mag,temp(3,2:3));
+%     addpoints(l,mag(end,1),mag(end,2));
+%     drawnow limitrate
+%     ms = etime(clock,t0);
+% end
+% disp('==STOP==');
+% 
+% % Filter
+% [b,a] = butter_synth(1,fc,fs);  % from mytoolbox
+% magB = filter(b,a,mag);         % built-in function
+% 
+% magF = magB;
+% for i=1:50
+%     magF(1,:)=[];
+% end
+% 
+% y2_avg = (max(magF(:,1))+min(magF(:,1)))/2;  % =12.5026µT
+% z2_avg = (max(magF(:,2))+min(magF(:,2)))/2;  % =4.9429µT
+% 
+% figure()
+% plot(mag(:,1),mag(:,2),'Color','r');
+% hold on
+% plot(magF(:,1),magF(:,2),'Color','b');
+% hold on
+% plot(magF(:,1)-y2_avg,magF(:,2)-z2_avg,'Color','g');
+% title('YZ Calibration')
+% xlabel('m_y (µT)');
+% ylabel('m_z (µT)');
+% legend('raw data','after LP filtration','calibrated data');
+% axis equal
+% grid on
+% 
+% 
+% %% Magnetometer XZ calibration
+% % Initialize figure
+% figure()
+% l = animatedline('Color','r','Marker','.');
+% 
+% % Initialize data
+% mag = zeros([0 0]);
+% 
+% % Read
+% y = char.empty;
+% ms = 0;
+% t0 = clock;
+% while ms < 4
+%     y = fgets(arduino);
+%     ms = etime(clock,t0);
+% end
+% 
+% disp('==Rotate the device around the Y-axis==');
+% ms = 0;
+% t0 = clock;
+% while ms < 10 
+%     y = fgets(arduino);
+%     temp = str2num(y);
+%     mag = cat(1,mag,temp(3,[1 3]));
+%     addpoints(l,mag(end,1),mag(end,2));
+%     drawnow limitrate
+%     ms = etime(clock,t0);
+% end
+% disp('==STOP==');
+% 
+% % Filter
+% [b,a] = butter_synth(1,fc,fs);  % from mytoolbox
+% magB = filter(b,a,mag);         % built-in function
+% 
+% magF = magB;
+% for i=1:50
+%     magF(1,:)=[];
+% end
+% 
+% x3_avg = (max(magF(:,1))+min(magF(:,1)))/2;  % =-8.5529µT
+% z3_avg = (max(magF(:,2))+min(magF(:,2)))/2;  % =5.7285µT
+% 
+% figure()
+% plot(mag(:,1),mag(:,2),'Color','r');
+% hold on
+% plot(magF(:,1),magF(:,2),'Color','b');
+% hold on
+% plot(magF(:,1)-x3_avg,magF(:,2)-z3_avg,'Color','g');
+% title('XZ Calibration')
+% xlabel('m_x (µT)');
+% ylabel('m_z (µT)');
+% legend('raw data','after LP filtration','calibrated data');
+% axis equal
+% grid on
+
+
+%% Read data
+% If calibration is necessary, remove '%' and execute the whole script
+% Initialize data
+acc = zeros([0 3]);
+gyro = zeros([0 3]);
+mag = zeros([0 3]);
+% x_avg = (x1_avg+x3_avg)/2;  % =-7.8246µT
+% y_avg = (y1_avg+y2_avg)/2;  % =13.2427µT
+% z_avg = (z2_avg+z3_avg)/2;  % =5.3357µT
+x_avg = -7.8246;
+y_avg = 13.2427;
+z_avg = 5.3357;
+
+% y = char.empty;
+% ms = 0;
+% t0 = clock;
+% while ms < 4
+%     y = fgets(arduino);
+%     ms = etime(clock,t0);
+% end
+
+% Read
+while true
+    y = fgets(arduino);
+    temp = str2num(y);
+    acc = temp(1,:);
+    gyr = temp(2,:);
+    mag = temp(3,:)-[x_avg,y_avg,z_avg];
+    disp(acc,gyr,mag);
+    pause(0.04);
+end
